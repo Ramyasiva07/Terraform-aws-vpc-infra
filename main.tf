@@ -1,4 +1,3 @@
-
 # -------- AVAILABILITY ZONES --------
 data "aws_availability_zones" "azs" {}
 
@@ -52,6 +51,8 @@ resource "aws_eip" "nat" {
 resource "aws_nat_gateway" "nat" {
   allocation_id = aws_eip.nat.id
   subnet_id     = aws_subnet.public1.id
+
+  depends_on = [aws_internet_gateway.igw]
 }
 
 # -------- ROUTE TABLES --------
@@ -96,7 +97,7 @@ resource "aws_security_group" "web" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["0.0.0.0/0"]  # ALB access
   }
 
   egress {
@@ -121,6 +122,15 @@ resource "aws_lb_target_group" "tg" {
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
+
+  health_check {
+    path                = "/"
+    protocol            = "HTTP"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
 }
 
 # -------- LISTENER --------
@@ -141,18 +151,21 @@ resource "aws_launch_template" "lt" {
   image_id      = data.aws_ami.amazon_linux.id
   instance_type = "t3.micro"
 
+  vpc_security_group_ids = [aws_security_group.web.id]
+
   user_data = base64encode(<<EOF
 #!/bin/bash
+yum update -y
 yum install -y httpd git
+
+systemctl start httpd
+systemctl enable httpd
+
 cd /var/www/html
 rm -rf *
 git clone https://github.com/Ramyasiva07/My-Portfolio.git .
-systemctl start httpd
-systemctl enable httpd
 EOF
   )
-
-  vpc_security_group_ids = [aws_security_group.web.id]
 }
 
 # -------- AUTO SCALING --------
@@ -169,4 +182,6 @@ resource "aws_autoscaling_group" "asg" {
     id      = aws_launch_template.lt.id
     version = "$Latest"
   }
+
+  health_check_type = "ELB"
 }
