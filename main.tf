@@ -139,7 +139,7 @@ resource "aws_lb_listener" "listener" {
 resource "aws_launch_template" "lt" {
   name_prefix   = "ramya-lt"
   image_id      = data.aws_ami.amazon_linux.id
-  instance_type = "t2.micro"
+  instance_type = "t3.micro"
 
   user_data = base64encode(<<EOF
 #!/bin/bash
