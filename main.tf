@@ -1,4 +1,11 @@
-# ---------------- AMI ----------------
+provider "aws" {
+  region = "us-east-1"
+}
+
+# -------- AVAILABILITY ZONES --------
+data "aws_availability_zones" "azs" {}
+
+# -------- AMI --------
 data "aws_ami" "amazon_linux" {
   most_recent = true
   owners      = ["amazon"]
@@ -8,51 +15,49 @@ data "aws_ami" "amazon_linux" {
     values = ["amzn2-ami-hvm-*-x86_64-gp2"]
   }
 }
-# ---------------AZ--------------------
-data "aws_availability_zones" "available" {}
 
-# ---------------- VPC ----------------
+# -------- VPC --------
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 }
 
-# ---------------- SUBNETS ----------------
-resource "aws_subnet" "public" {
+# -------- SUBNETS --------
+resource "aws_subnet" "public1" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
-  availability_zone       = data.aws_availability_zones.available.names[0]
+  availability_zone       = data.aws_availability_zones.azs.names[0]
   map_public_ip_on_launch = true
 }
 
 resource "aws_subnet" "public2" {
   vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.3.0/24"
-  availability_zone       = data.aws_availability_zones.available.names[1]
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = data.aws_availability_zones.azs.names[1]
   map_public_ip_on_launch = true
 }
 
 resource "aws_subnet" "private" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.0.2.0/24"
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.3.0/24"
+  availability_zone = data.aws_availability_zones.azs.names[0]
 }
 
-# ---------------- INTERNET GATEWAY ----------------
+# -------- INTERNET GATEWAY --------
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 }
 
-# ---------------- NAT ----------------
+# -------- NAT --------
 resource "aws_eip" "nat" {
   domain = "vpc"
 }
 
 resource "aws_nat_gateway" "nat" {
   allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public.id
+  subnet_id     = aws_subnet.public1.id
 }
 
-# ---------------- ROUTE TABLES ----------------
-# Public Route Table
+# -------- ROUTE TABLES --------
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
@@ -62,17 +67,16 @@ resource "aws_route_table" "public" {
   }
 }
 
-resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public.id
+resource "aws_route_table_association" "pub1" {
+  subnet_id      = aws_subnet.public1.id
   route_table_id = aws_route_table.public.id
 }
 
-resource "aws_route_table_association" "public2" {
+resource "aws_route_table_association" "pub2" {
   subnet_id      = aws_subnet.public2.id
   route_table_id = aws_route_table.public.id
 }
 
-# Private Route Table
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
@@ -82,13 +86,13 @@ resource "aws_route_table" "private" {
   }
 }
 
-resource "aws_route_table_association" "private" {
+resource "aws_route_table_association" "priv" {
   subnet_id      = aws_subnet.private.id
   route_table_id = aws_route_table.private.id
 }
 
-# ---------------- SECURITY GROUP ----------------
-resource "aws_security_group" "web_sg" {
+# -------- SECURITY GROUP --------
+resource "aws_security_group" "web" {
   vpc_id = aws_vpc.main.id
 
   ingress {
@@ -106,23 +110,23 @@ resource "aws_security_group" "web_sg" {
   }
 }
 
-# ---------------- LOAD BALANCER ----------------
+# -------- LOAD BALANCER --------
 resource "aws_lb" "alb" {
   name               = "ramya-alb"
   internal           = false
   load_balancer_type = "application"
-  subnets            = [aws_subnet.public.id, aws_subnet.public2.id]
-  security_groups    = [aws_security_group.web_sg.id]
+  subnets            = [aws_subnet.public1.id, aws_subnet.public2.id]
+  security_groups    = [aws_security_group.web.id]
 }
 
-# ---------------- TARGET GROUP ----------------
+# -------- TARGET GROUP --------
 resource "aws_lb_target_group" "tg" {
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
 }
 
-# ---------------- LISTENER ----------------
+# -------- LISTENER --------
 resource "aws_lb_listener" "listener" {
   load_balancer_arn = aws_lb.alb.arn
   port              = 80
@@ -134,7 +138,7 @@ resource "aws_lb_listener" "listener" {
   }
 }
 
-# ---------------- LAUNCH TEMPLATE ----------------
+# -------- LAUNCH TEMPLATE --------
 resource "aws_launch_template" "lt" {
   name_prefix   = "ramya-lt"
   image_id      = data.aws_ami.amazon_linux.id
@@ -151,10 +155,10 @@ systemctl enable httpd
 EOF
   )
 
-  vpc_security_group_ids = [aws_security_group.web_sg.id]
+  vpc_security_group_ids = [aws_security_group.web.id]
 }
 
-# ---------------- AUTO SCALING GROUP ----------------
+# -------- AUTO SCALING --------
 resource "aws_autoscaling_group" "asg" {
   desired_capacity = 1
   max_size         = 2
