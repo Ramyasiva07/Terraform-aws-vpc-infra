@@ -118,7 +118,8 @@ resource "aws_launch_template" "lt" {
     echo "Hello from Auto Scaling EC2 🚀" > /var/www/html/index.html
     systemctl start httpd
     systemctl enable httpd
-  EOF)
+    EOF
+    )
 
   vpc_security_group_ids = [aws_security_group.web_sg.id]
 }
