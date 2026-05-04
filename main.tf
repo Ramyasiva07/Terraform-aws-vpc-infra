@@ -1,3 +1,13 @@
+data "aws_ami" "amazon_linux" {
+  most_recent = true
+  owners      = ["amazon"]
+
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+}
+
 # ---------------- VPC ----------------
 resource "aws_vpc" "main" {
   cidr_block = var.vpc_cidr
@@ -7,13 +17,14 @@ resource "aws_vpc" "main" {
 resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
+  availability_zone       = "us-east-1a"
   map_public_ip_on_launch = true
 }
 
 resource "aws_subnet" "public2" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.3.0/24"
-  availability_zone       = "ap-south-1b"
+  availability_zone       = "us-east-1b"
   map_public_ip_on_launch = true
 }
 
@@ -116,7 +127,7 @@ resource "aws_lb_listener" "listener" {
 # ---------------- LAUNCH TEMPLATE ----------------
 resource "aws_launch_template" "lt" {
   name_prefix   = "ramya-lt"
-  image_id      = "ami-0c02fb55956c7d316"
+  image_id      = data.aws_ami.amazon_linux.id
   instance_type = var.instance_type
 
   user_data = base64encode(<<EOF
