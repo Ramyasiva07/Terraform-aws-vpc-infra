@@ -90,7 +90,7 @@ resource "aws_lb" "alb" {
   name               = "ramya-alb"
   internal           = false
   load_balancer_type = "application"
-  subnets            = [aws_subnet.public.id]
+  subnets            = [aws_subnet.public.id, aws_subnet.public2.id]
   security_groups    = [aws_security_group.web_sg.id]
 }
 
@@ -116,7 +116,7 @@ resource "aws_lb_listener" "listener" {
 # ---------------- LAUNCH TEMPLATE ----------------
 resource "aws_launch_template" "lt" {
   name_prefix   = "ramya-lt"
-  image_id      = "ami-0f58b397bc5c1f2e8"
+  image_id      = "ami-0c02fb55956c7d316"
   instance_type = var.instance_type
 
   user_data = base64encode(<<EOF
