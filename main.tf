@@ -118,7 +118,7 @@ yum install -y httpd git
 
 cd /var/www/html
 rm -rf *
-git clone https://github.com/Ramyasiva07/ramya-portfolio.git .
+git clone https://github.com/Ramyasiva07/My-Portfolio.git .
 
 systemctl start httpd
 systemctl enable httpd
