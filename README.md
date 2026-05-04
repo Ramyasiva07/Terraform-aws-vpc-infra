@@ -1,10 +1,10 @@
-☁️ Terraform AWS Infrastructure
+ Terraform AWS Infrastructure
 
-📌 Overview
+ Overview
 
-Provisioned AWS infrastructure using Terraform.
+ Provisioned AWS infrastructure using Terraform.
 
-🏗️ Resources Created
+ Resources Created
 
 - VPC
 - Public & Private Subnets
@@ -14,23 +14,17 @@ Provisioned AWS infrastructure using Terraform.
 - Application Load Balancer
 - Auto Scaling Group
 
-⚙️ How to Run
+How to Run
 
 terraform init
 terraform plan
 terraform apply
 
-📊 Architecture
-
-(Add diagram screenshot)
-
-🎯 Key Concepts
+Key Concepts
 
 - Infrastructure as Code
 - State file management
 - Variables & outputs
 - Modular design
 
-🔐 Notes
 
-Provisioners are avoided; user data is preferred.
