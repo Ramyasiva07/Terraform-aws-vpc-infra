@@ -112,14 +112,14 @@ resource "aws_launch_template" "lt" {
   image_id      = "ami-0f58b397bc5c1f2e8"
   instance_type = var.instance_type
 
-  user_data = base64encode(<<-EOF
-    #!/bin/bash
-    yum install -y httpd
-    echo "Hello from Auto Scaling EC2 🚀" > /var/www/html/index.html
-    systemctl start httpd
-    systemctl enable httpd
-    EOF
-    )
+  user_data = base64encode(<<EOF
+  #!/bin/bash
+  yum install -y httpd
+  echo "Hello from Auto Scaling EC2" > /var/www/html/index.html
+  systemctl start httpd
+  systemctl enable httpd
+  EOF
+  )
 
   vpc_security_group_ids = [aws_security_group.web_sg.id]
 }
