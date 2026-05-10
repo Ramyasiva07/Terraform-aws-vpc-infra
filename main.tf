@@ -15,6 +15,10 @@ data "aws_ami" "amazon_linux" {
 # -------- VPC --------
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
+
+  tags = {
+    Name = "Ramya-VPC"
+  }
 }
 
 # -------- SUBNETS --------
@@ -23,6 +27,10 @@ resource "aws_subnet" "public1" {
   cidr_block              = "10.0.1.0/24"
   availability_zone       = data.aws_availability_zones.azs.names[0]
   map_public_ip_on_launch = true
+
+  tags = {
+    Name = "Ramya-Public-Subnet-1"
+  }
 }
 
 resource "aws_subnet" "public2" {
@@ -30,22 +38,38 @@ resource "aws_subnet" "public2" {
   cidr_block              = "10.0.2.0/24"
   availability_zone       = data.aws_availability_zones.azs.names[1]
   map_public_ip_on_launch = true
+
+  tags = {
+    Name = "Ramya-Public-Subnet-2"
+  }
 }
 
 resource "aws_subnet" "private" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.3.0/24"
   availability_zone = data.aws_availability_zones.azs.names[0]
+
+  tags = {
+    Name = "Ramya-Private-Subnet"
+  }
 }
 
 # -------- INTERNET GATEWAY --------
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "Ramya-IGW"
+  }
 }
 
 # -------- NAT --------
 resource "aws_eip" "nat" {
   domain = "vpc"
+
+  tags = {
+    Name = "Ramya-EIP"
+  }
 }
 
 resource "aws_nat_gateway" "nat" {
@@ -53,6 +77,10 @@ resource "aws_nat_gateway" "nat" {
   subnet_id     = aws_subnet.public1.id
 
   depends_on = [aws_internet_gateway.igw]
+
+  tags = {
+    Name = "Ramya-NAT-Gateway"
+  }
 }
 
 # -------- ROUTE TABLES --------
@@ -62,6 +90,10 @@ resource "aws_route_table" "public" {
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.igw.id
+  }
+
+  tags = {
+    Name = "Ramya-Public-Route-Table"
   }
 }
 
@@ -82,6 +114,10 @@ resource "aws_route_table" "private" {
     cidr_block     = "0.0.0.0/0"
     nat_gateway_id = aws_nat_gateway.nat.id
   }
+
+  tags = {
+    Name = "Ramya-Private-Route-Table"
+  }
 }
 
 resource "aws_route_table_association" "priv" {
@@ -97,7 +133,7 @@ resource "aws_security_group" "web" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # ALB access
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -105,6 +141,10 @@ resource "aws_security_group" "web" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "Ramya-Web-SG"
   }
 }
 
@@ -119,6 +159,7 @@ resource "aws_lb" "alb" {
 
 # -------- TARGET GROUP --------
 resource "aws_lb_target_group" "tg" {
+  name     = "ramya-target-group"
   port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.main.id
@@ -130,6 +171,10 @@ resource "aws_lb_target_group" "tg" {
     timeout             = 5
     healthy_threshold   = 2
     unhealthy_threshold = 2
+  }
+
+  tags = {
+    Name = "Ramya-Target-Group"
   }
 }
 
@@ -184,4 +229,10 @@ resource "aws_autoscaling_group" "asg" {
   }
 
   health_check_type = "ELB"
+
+  tag {
+    key                 = "Name"
+    value               = "Ramya-ASG"
+    propagate_at_launch = true
+  }
 }
